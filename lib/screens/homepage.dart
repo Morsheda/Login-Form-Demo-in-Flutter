@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:login_form/screens/mainscreen.dart';
@@ -7,20 +8,8 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
-  AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _controller.dispose();
-  }
+class _HomeState extends State<Home> {
+  String myEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +35,30 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         ],
       ),
       body: Center(
-        child: Text('Hi! This is Home'),
+        child: FutureBuilder(
+          future: _fetch(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done)
+              return Text("Loading data...Please wait");
+            return Text("Email : $myEmail");
+          },
+        ),
       ),
     );
+  }
+
+  _fetch() async {
+    final firebaseUser = await FirebaseAuth.instance.currentUser();
+    if (firebaseUser != null)
+      await Firestore.instance
+          .collection('users')
+          .document(firebaseUser.uid)
+          .get()
+          .then((ds) {
+        myEmail = ds.data['email'];
+        print(myEmail);
+      }).catchError((e) {
+        print(e);
+      });
   }
 }
